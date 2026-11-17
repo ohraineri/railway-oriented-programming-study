@@ -1,17 +1,36 @@
 package me.raineri;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import me.raineri.rop.usecase.RegisterUserUseCase;
+import me.raineri.rop.usecase.RegisterUserUseCase.Command;
+import me.raineri.rop.usecase.RegisterUserUseCase.RegisterError;
+
 public class Main {
     static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
+        var useCase = new RegisterUserUseCase();
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
+        var commands = new Command[]{
+                new Command("Ana", "ana@email.com", "senha-forte-123"),   // ok
+                new Command("Ana", "ana@email.com", "outra-senha-123"),  // email duplicado
+                new Command("", "bob@email.com", "senha-forte-123"),     // nome inválido
+                new Command("Bob", "bob-email", "senha-forte-123"),      // email inválido
+                new Command("Bob", "bob@email.com", "123"),              // senha fraca
+        };
+
+        for (var cmd : commands) {
+            String output = useCase.execute(cmd).fold(
+                    user -> "✅ criado: " + user.email() + " (id=" + user.id() + ")",
+                    Main::describe);
+            IO.println(output);
         }
+    }
+
+    // Pattern matching exaustivo: o compilador garante que todos os erros são tratados
+    private static String describe(RegisterError error) {
+        return switch (error) {
+            case RegisterError.InvalidName e -> "❌ nome inválido: " + e.reason();
+            case RegisterError.InvalidEmail e -> "❌ e-mail inválido: " + e.reason();
+            case RegisterError.WeakPassword e -> "❌ senha fraca: " + e.reason();
+            case RegisterError.EmailAlreadyUsed e -> "❌ e-mail já cadastrado: " + e.email();
+        };
     }
 }
